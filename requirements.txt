@@ -1,0 +1,6 @@
+flask
+flask-cors
+langchain-chroma
+langchain-huggingface
+langchain-google-genai
+sentence-transformers

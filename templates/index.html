@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistente de Contabilidade Municipal</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        /* --- ESTILOS VISUAIS (CSS) --- */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #F0F4F8;
+            color: #333333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        header {
+            background-color: #0F4C81;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.4rem;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        #chat-container {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .mensagem {
+            max-width: 80%;
+            padding: 15px 20px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            line-height: 1.5;
+        }
+
+        .mensagem-utilizador {
+            background-color: #E1E8ED;
+            align-self: flex-end;
+            border-bottom-right-radius: 0;
+        }
+
+        .mensagem-ai {
+            background-color: #FFFFFF;
+            align-self: flex-start;
+            border-bottom-left-radius: 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid #0F4C81;
+        }
+
+        #input-container {
+            background-color: white;
+            padding: 20px;
+            border-top: 1px solid #E1E8ED;
+            display: flex;
+            justify-content: center;
+        }
+
+        .input-wrapper {
+            display: flex;
+            max-width: 800px;
+            width: 100%;
+            gap: 10px;
+        }
+
+        #mensagem-input {
+            flex-grow: 1;
+            padding: 15px;
+            font-size: 1.1rem;
+            border: 1px solid #CCCCCC;
+            border-radius: 8px;
+            outline: none;
+        }
+
+        #mensagem-input:focus {
+            border-color: #0F4C81;
+        }
+
+        #enviar-btn {
+            background-color: #0F4C81;
+            color: white;
+            border: none;
+            padding: 0 25px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #enviar-btn:hover {
+            background-color: #0b365c;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        Assistente de Contabilidade Municipal
+    </header>
+
+    <div id="chat-container">
+    </div>
+
+    <div id="input-container">
+        <div class="input-wrapper">
+            <input type="text" id="mensagem-input" placeholder="Escreva aqui a sua pergunta...">
+            <button id="enviar-btn">Enviar</button>
+        </div>
+    </div>
+
+<script>
+        const chatContainer = document.getElementById('chat-container');
+        const mensagemInput = document.getElementById('mensagem-input');
+        const enviarBtn = document.getElementById('enviar-btn');
+
+        function adicionarMensagem(texto, tipo, id = null) {
+            const novaMensagem = document.createElement('div');
+            novaMensagem.classList.add('mensagem');
+            novaMensagem.classList.add(tipo === 'utilizador' ? 'mensagem-utilizador' : 'mensagem-ai');
+            if (id) novaMensagem.id = id;
+            
+            if (tipo === 'ai') {
+                novaMensagem.innerHTML = marked.parse(texto);
+            } else {
+                novaMensagem.textContent = texto;
+            }
+            
+            chatContainer.appendChild(novaMensagem);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function processarEnvio() {
+            const texto = mensagemInput.value.trim();
+            if (texto === "") return;
+
+            adicionarMensagem(texto, 'utilizador');
+            mensagemInput.value = '';
+
+            const loadingId = 'loading-' + Date.now();
+            adicionarMensagem("A processar a sua documentação financeira... ⏳", 'ai', loadingId);
+
+            try {
+                // O URL foi alterado para um caminho relativo genérico
+                const resposta = await fetch('/perguntar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ pergunta: texto })
+                });
+
+                const dados = await resposta.json();
+
+                document.getElementById(loadingId).remove();
+
+                if (dados.resposta) {
+                    adicionarMensagem(dados.resposta, 'ai');
+                } else {
+                    adicionarMensagem("Erro: " + dados.erro, 'ai');
+                }
+            } catch (erro) {
+                document.getElementById(loadingId).remove();
+                adicionarMensagem("❌ Erro de ligação ao servidor. Verifique se o script Python está a correr.", 'ai');
+            }
+        }
+
+        enviarBtn.addEventListener('click', processarEnvio);
+        mensagemInput.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                processarEnvio();
+            }
+        });
+</script>
+</body>
+</html>
